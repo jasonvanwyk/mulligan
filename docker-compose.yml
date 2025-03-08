@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:14
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=mulligan
+      - POSTGRES_USER=mulligan_user
+      - POSTGRES_PASSWORD=mulligan_password
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mulligan_user -d mulligan"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - "8001:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://mulligan_user:mulligan_password@db:5432/mulligan
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+    entrypoint: ["./docker/backend/entrypoint.sh"]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    volumes:
+      - ./src:/app/src
+    ports:
+      - "3002:3000"
+    depends_on:
+      - backend
+    environment:
+      - REACT_APP_API_URL=http://localhost:8001/api
+
+volumes:
+  postgres_data: 
