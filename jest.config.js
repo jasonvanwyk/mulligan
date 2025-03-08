@@ -13,12 +13,14 @@ module.exports = {
     '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest'
   },
   transformIgnorePatterns: [
-    '/node_modules/',
+    '/node_modules/(?!(@testing-library|axios)/)',
     '^.+\\.module\\.(css|sass|scss)$'
   ],
   moduleDirectories: ['node_modules', 'src'],
   coveragePathIgnorePatterns: [
     '/node_modules/',
     '/coverage/'
-  ]
+  ],
+  testPathIgnorePatterns: ['/node_modules/'],
+  verbose: true
 }; 

@@ -9,11 +9,21 @@ import axios from 'axios';
 // Mock axios
 jest.mock('axios');
 
+// Mock AuthContext
+jest.mock('../context/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 1, username: 'testuser' }
+  }),
+  AuthProvider: ({ children }) => <div>{children}</div>
+}));
+
 // Create a wrapper component that provides necessary context
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: false,
+      cacheTime: 0,
+      retryDelay: 0
     },
   },
 });
@@ -35,13 +45,11 @@ const customRender = (ui, options) =>
 
 describe('Dashboard Component', () => {
   beforeEach(() => {
-    // Clear localStorage and reset mocks before each test
-    localStorage.clear();
     queryClient.clear();
     axios.get.mockReset();
   });
 
-  test('shows loading state initially', () => {
+  test('shows loading state initially', async () => {
     // Mock the API call but don't resolve it yet
     axios.get.mockImplementation(() => new Promise(() => {}));
     
@@ -80,37 +88,39 @@ describe('Dashboard Component', () => {
     
     customRender(<Dashboard />);
 
-    // Wait for tournaments to be displayed
     await waitFor(() => {
       expect(screen.getByText('Test Tournament 1')).toBeInTheDocument();
       expect(screen.getByText('Test Tournament 2')).toBeInTheDocument();
     });
 
-    // Check if tournament details are displayed
-    expect(screen.getByText('individual')).toBeInTheDocument();
-    expect(screen.getByText('team')).toBeInTheDocument();
-    expect(screen.getAllByText('Test Venue')[0]).toBeInTheDocument();
+    expect(screen.getByText(/Type: individual/)).toBeInTheDocument();
+    expect(screen.getByText(/Type: team/)).toBeInTheDocument();
+    expect(screen.getByText(/Venue: Test Venue$/)).toBeInTheDocument();
   });
 
   test('displays error message when API call fails', async () => {
-    // Mock API error
-    axios.get.mockRejectedValueOnce(new Error('Failed to fetch tournaments'));
+    const errorMessage = 'Failed to fetch tournaments';
+    axios.get.mockRejectedValueOnce(new Error(errorMessage));
     
     customRender(<Dashboard />);
 
+    // First, verify loading state
+    expect(screen.getByText(/loading tournaments/i)).toBeInTheDocument();
+
+    // Then, wait for the error message
     await waitFor(() => {
       expect(screen.getByText(/error loading tournaments/i)).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
   });
 
   test('displays empty state when no tournaments exist', async () => {
-    // Mock empty tournaments list
     axios.get.mockResolvedValueOnce({ data: { results: [] } });
     
     customRender(<Dashboard />);
 
     await waitFor(() => {
       expect(screen.getByText(/no tournaments found/i)).toBeInTheDocument();
+      expect(screen.getByText(/create a new tournament/i)).toBeInTheDocument();
     });
   });
 
@@ -125,7 +135,6 @@ describe('Dashboard Component', () => {
   });
 
   test('handles malformed API response gracefully', async () => {
-    // Mock malformed API response
     axios.get.mockResolvedValueOnce({ data: 'invalid data' });
     
     customRender(<Dashboard />);

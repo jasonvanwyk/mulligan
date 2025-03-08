@@ -1,62 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-function Login() {
+const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { login, user, loading } = useAuth();
+  const { login, loading, error } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    console.log('Login component mounted');
-    console.log('Current user:', user);
-    console.log('Loading state:', loading);
-    
-    // If user is already logged in, redirect to home
-    if (user) {
-      console.log('User already logged in, redirecting...');
-      navigate('/');
-    }
-  }, [user, navigate, loading]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    console.log('Attempting login with username:', username);
+    if (!username || !password) return;
 
     try {
-      const success = await login(username, password);
-      if (success) {
-        console.log('Login successful, redirecting...');
-        navigate('/');
-      } else {
-        console.log('Login failed');
-        setError('Invalid username or password');
-      }
+      await login(username, password);
+      navigate('/');
     } catch (err) {
-      console.error('Login error:', err);
-      setError('An error occurred during login');
+      // Error is handled by the AuthContext
     }
   };
-
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-700">Loading...</h2>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't show login form if user is already logged in
-  if (user) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -81,7 +43,6 @@ function Login() {
                 placeholder="Username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
               />
             </div>
             <div>
@@ -97,7 +58,6 @@ function Login() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
               />
             </div>
           </div>
@@ -109,15 +69,16 @@ function Login() {
           <div>
             <button
               type="submit"
+              disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Sign in
+              {loading ? 'Loading...' : 'Sign in'}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
-}
+};
 
 export default Login; 

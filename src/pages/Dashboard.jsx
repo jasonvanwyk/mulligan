@@ -2,155 +2,77 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import axios from 'axios';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
 
-function Dashboard() {
+const Dashboard = () => {
   const { user } = useAuth();
 
-  const { data: tournamentsData, isLoading, error } = useQuery(
+  const { data: tournaments, isLoading, error } = useQuery(
     'tournaments',
     async () => {
-      try {
-        console.log('Fetching tournaments with auth token...');
-        const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('No authentication token found');
-        }
-
-        const response = await axios.get('/api/tournaments/', {
-          headers: {
-            'Authorization': `Token ${token}`,
-            'Content-Type': 'application/json',
-          }
-        });
-
-        console.log('API Response:', {
-          status: response.status,
-          data: response.data
-        });
-
-        // Ensure we have an array of tournaments
-        const tournaments = Array.isArray(response.data) ? response.data :
-                          Array.isArray(response.data?.results) ? response.data.results :
-                          [];
-
-        console.log('Processed tournaments:', tournaments);
-        return tournaments;
-
-      } catch (err) {
-        console.error('Error fetching tournaments:', err);
-        if (err.response) {
-          console.error('Error details:', {
-            status: err.response.status,
-            data: err.response.data
-          });
-        }
-        throw err;
-      }
+      const response = await axios.get('/api/tournaments/');
+      return response.data;
     },
     {
-      enabled: !!user, // Only run query if user is logged in
+      enabled: !!user,
       retry: 1,
-      refetchOnWindowFocus: false,
-      staleTime: 30000,
+      refetchOnWindowFocus: false
     }
   );
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-700">Loading tournaments...</h2>
-        </div>
-      </div>
-    );
+    return <div>Loading tournaments...</div>;
   }
 
   if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center text-red-600">
-          <h2 className="text-xl font-semibold">Error loading tournaments</h2>
-          <p>{error.message}</p>
-          {error.response?.data && (
-            <pre className="mt-2 text-sm">
-              {JSON.stringify(error.response.data, null, 2)}
-            </pre>
-          )}
-        </div>
-      </div>
-    );
+    return <div>Error loading tournaments: {error.message}</div>;
   }
 
-  const tournaments = Array.isArray(tournamentsData) ? tournamentsData : [];
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+  if (!tournaments?.results?.length) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-2xl font-semibold text-gray-900">No tournaments found</h2>
+        <p className="mt-2 text-gray-600">Create a new tournament to get started.</p>
         <Link
           to="/tournaments"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
         >
           View All Tournaments
         </Link>
       </div>
+    );
+  }
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        {tournaments.length === 0 ? (
-          <div className="p-4 text-center text-gray-500">
-            No tournaments found. Create your first tournament!
-          </div>
-        ) : (
-          <ul className="divide-y divide-gray-200">
-            {tournaments.map((tournament) => (
-              <li key={tournament.id || Math.random()}>
-                <Link
-                  to={`/tournaments/${tournament.id}`}
-                  className="block hover:bg-gray-50"
-                >
-                  <div className="px-4 py-4 sm:px-6">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-indigo-600 truncate">
-                        {tournament.name || 'Unnamed Tournament'}
-                      </p>
-                      <div className="ml-2 flex-shrink-0 flex">
-                        <p
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            tournament.status === 'active'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {tournament.status || 'unknown'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-2 sm:flex sm:justify-between">
-                      <div className="sm:flex">
-                        <p className="flex items-center text-sm text-gray-500">
-                          {tournament.tournament_type || 'No type'}
-                        </p>
-                        <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                          {tournament.venue || 'No venue'}
-                        </p>
-                      </div>
-                      <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                        <p>
-                          {tournament.start_date ? new Date(tournament.start_date).toLocaleDateString() : 'No date'} -{' '}
-                          {tournament.end_date ? new Date(tournament.end_date).toLocaleDateString() : 'No date'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+  return (
+    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div className="px-4 py-6 sm:px-0">
+        <h1 className="text-3xl font-bold text-gray-900">Tournaments</h1>
+        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {tournaments.results.map((tournament) => (
+            <div
+              key={tournament.id}
+              className="bg-white overflow-hidden shadow rounded-lg"
+            >
+              <div className="px-4 py-5 sm:p-6">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {tournament.name}
+                </h3>
+                <div className="mt-2 text-sm text-gray-500">
+                  <p>Type: {tournament.tournament_type}</p>
+                  <p>Venue: {tournament.venue}</p>
+                  <p>Status: {tournament.status}</p>
+                  <p>
+                    Date: {new Date(tournament.start_date).toLocaleDateString()} -{' '}
+                    {new Date(tournament.end_date).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
-}
+};
 
 export default Dashboard;

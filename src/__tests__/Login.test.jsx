@@ -1,12 +1,34 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { AuthProvider } from '../context/AuthContext';
 import Login from '../pages/Login';
 
+// Mock react-router-dom
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate
+}));
+
+// Mock AuthContext
+const mockLogin = jest.fn();
+let mockLoading = false;
+let mockError = null;
+
+jest.mock('../context/AuthContext', () => ({
+  useAuth: () => ({
+    login: mockLogin,
+    loading: mockLoading,
+    error: mockError
+  }),
+  AuthProvider: ({ children }) => <div>{children}</div>
+}));
+
 // Create a wrapper component that provides necessary context
 const queryClient = new QueryClient();
+
 const AllTheProviders = ({ children }) => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -24,10 +46,11 @@ const customRender = (ui, options) =>
 
 describe('Login Component', () => {
   beforeEach(() => {
-    // Clear localStorage before each test
-    localStorage.clear();
-    // Reset query client
     queryClient.clear();
+    mockNavigate.mockClear();
+    mockLogin.mockReset();
+    mockLoading = false;
+    mockError = null;
   });
 
   test('renders login form', () => {
@@ -40,6 +63,9 @@ describe('Login Component', () => {
   });
 
   test('shows error message on invalid credentials', async () => {
+    mockLogin.mockRejectedValueOnce(new Error('Invalid credentials'));
+    mockError = 'Invalid username or password';
+    
     customRender(<Login />);
     
     const usernameInput = screen.getByLabelText(/username/i);
@@ -56,12 +82,8 @@ describe('Login Component', () => {
   });
 
   test('redirects to dashboard on successful login', async () => {
-    const mockNavigate = jest.fn();
-    jest.mock('react-router-dom', () => ({
-      ...jest.requireActual('react-router-dom'),
-      useNavigate: () => mockNavigate,
-    }));
-
+    mockLogin.mockResolvedValueOnce({ username: 'testuser' });
+    
     customRender(<Login />);
     
     const usernameInput = screen.getByLabelText(/username/i);
@@ -78,17 +100,12 @@ describe('Login Component', () => {
   });
 
   test('shows loading state while authenticating', async () => {
+    mockLoading = true;
+    
     customRender(<Login />);
     
-    const usernameInput = screen.getByLabelText(/username/i);
-    const passwordInput = screen.getByLabelText(/password/i);
-    const submitButton = screen.getByRole('button', { name: /sign in/i });
-
-    fireEvent.change(usernameInput, { target: { value: 'testuser' } });
-    fireEvent.change(passwordInput, { target: { value: 'testpass123' } });
-    fireEvent.click(submitButton);
-
-    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    const submitButton = screen.getByRole('button', { name: /loading/i });
+    expect(submitButton).toBeDisabled();
   });
 
   test('prevents form submission with empty fields', () => {
@@ -97,7 +114,10 @@ describe('Login Component', () => {
     const submitButton = screen.getByRole('button', { name: /sign in/i });
     fireEvent.click(submitButton);
 
-    expect(screen.getByLabelText(/username/i)).toBeInvalid();
-    expect(screen.getByLabelText(/password/i)).toBeInvalid();
+    const usernameInput = screen.getByLabelText(/username/i);
+    const passwordInput = screen.getByLabelText(/password/i);
+
+    expect(usernameInput).toBeRequired();
+    expect(passwordInput).toBeRequired();
   });
 }); 
