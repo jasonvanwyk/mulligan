@@ -27,7 +27,7 @@ router = DefaultRouter()
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),  # API root
-    path('api/users/', include('users.urls')),
+    path('api/users/', include('apps.users.urls')),  # Updated to use apps.users
     path('api/tournaments/', include('tournaments.urls')),
     path('api/clubs/', include('clubs.urls')),
     path('api/golfers/', include('golfers.urls')),

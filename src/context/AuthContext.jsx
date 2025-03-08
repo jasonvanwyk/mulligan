@@ -20,11 +20,17 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.post('/api/auth/login/', { username, password });
+      // Using basic authentication
+      const auth = btoa(`${username}:${password}`);
+      axios.defaults.headers.common['Authorization'] = `Basic ${auth}`;
+      
+      // Get user profile
+      const response = await axios.get('/api/users/profile/');
       setUser(response.data);
       return response.data;
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid username or password');
+      setError(err.response?.data?.detail || 'Invalid username or password');
+      delete axios.defaults.headers.common['Authorization'];
       throw err;
     } finally {
       setLoading(false);
@@ -33,7 +39,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post('/api/auth/logout/');
+      delete axios.defaults.headers.common['Authorization'];
       setUser(null);
     } catch (err) {
       console.error('Logout failed:', err);
@@ -42,7 +48,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const response = await axios.get('/api/auth/user/');
+      const response = await axios.get('/api/users/profile/');
       setUser(response.data);
       return response.data;
     } catch (err) {
