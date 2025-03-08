@@ -1,9 +1,37 @@
 ---
-description:
-globs:
+description: git stratergy
+globs: 
+alwaysApply: false
 ---
+### **5.1 Git and Branching Strategy**
 
-# Your rule content
+- **Conventional Commits**: `feat`, `fix`, `docs`, `refactor`, etc.
+    - Example: `feat(inventory): add bulk import function`
+- **Branches**:
+    - **Main**: Production-ready code
+    - **Feature**: New features or bug fixes, merged via pull requests with code reviews
+# Contributing Guidelines
 
-- You can @ files here
-- You can use markdown but dont have to
+## Branching Strategy
+
+### Main Branches
+- `main` - Production-ready code, always stable
+- `develop` - Integration branch for features, pre-release testing
+
+### Feature Branches
+- `feature/[feature-name]` - For new features (e.g., `feature/user-dashboard`)
+- `bugfix/[bug-description]` - For bug fixes (e.g., `bugfix/login-validation`)
+- `hotfix/[issue-description]` - For urgent production fixes (branched from `main`)
+- `release/[version]` - For release preparation (e.g., `release/v1.0.0`)
+
+### Branch Naming Conventions
+- Use lowercase
+- Use hyphens to separate words
+- Be descriptive but concise
+- Include ticket/issue numbers if applicable (e.g., `feature/ERMS-123-user-dashboard`)
+
+### Workflow
+1. Branch from `develop` for new features
+2. Create pull requests to merge back into `develop`
+3. Branch from `main` only for critical hotfixes
+4. Use `release` branches to prepare for production deployment

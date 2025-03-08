@@ -27,7 +27,7 @@
     "jest-environment-jsdom": "^29.3.1"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "PORT=3003 react-scripts start",
     "build": "react-scripts build",
     "test": "jest --watch",
     "test:ci": "jest --ci --coverage",
